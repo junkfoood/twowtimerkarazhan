@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turtle WoW Karazhan Raid Timers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #b8c5d6;
+            opacity: 0.8;
+        }
+
+        .raid-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .raid-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .raid-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color), var(--accent-color-light));
+        }
+
+        .raid-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .raid-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .raid-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            margin-right: 20px;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .raid-info h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .raid-info p {
+            color: #b8c5d6;
+            font-size: 0.9rem;
+        }
+
+        .timer {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .timer-label {
+            font-size: 1.1rem;
+            color: #b8c5d6;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .time-unit {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px 10px;
+            min-width: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            display: block;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .time-label {
+            font-size: 0.8rem;
+            color: #b8c5d6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        .reset-info {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .reset-info p {
+            color: #b8c5d6;
+            font-size: 0.9rem;
+        }
+
+
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #b8c5d6;
+            font-size: 0.9rem;
+        }
+
+        /* Raid-specific colors */
+        .raid-card[data-raid="raid40"] {
+            --accent-color: #ff6b6b;
+            --accent-color-light: #ff8e8e;
+        }
+
+        .raid-card[data-raid="raid5day"] {
+            --accent-color: #4ecdc4;
+            --accent-color-light: #6ee7df;
+        }
+
+        .raid-card[data-raid="raid3day"] {
+            --accent-color: #96ceb4;
+            --accent-color-light: #b8e0c8;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .raid-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .countdown {
+                gap: 10px;
+            }
+            
+            .time-unit {
+                min-width: 60px;
+                padding: 10px 5px;
+            }
+            
+            .time-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Animation for countdown */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .time-unit.urgent {
+            animation: pulse 1s infinite;
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Turtle WoW Karazhan Raid Timers</h1>
+            <p>Track your raid reset timers with precision</p>
+        </div>
+
+        <div class="raid-grid">
+            <div class="raid-card" data-raid="raid40">
+                <div class="raid-header">
+                    <div class="raid-icon">🔥</div>
+                    <div class="raid-info">
+                        <ul>
+                            <li>Blackwing Lair</li>
+                            <li>Emerald Sanctum</li>
+                            <li>Molten Core</li>
+                            <li>Temple of Ahn'Qiraj</li>
+                            <li>Naxxramas</li>
+                    </div>
+                </div>
+                <div class="timer">
+                    <div class="timer-label">Time until reset</div>
+                    <div class="countdown" id="raid40-countdown">
+                        <div class="time-unit">
+                            <span class="time-value" id="raid40-days">0</span>
+                            <div class="time-label">Days</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid40-hours">0</span>
+                            <div class="time-label">Hours</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid40-minutes">0</span>
+                            <div class="time-label">Minutes</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid40-seconds">0</span>
+                            <div class="time-label">Seconds</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reset-info">
+                    <p>Resets every 7 days</p>
+                </div>
+            </div>
+
+            <div class="raid-card" data-raid="raid5day">
+                <div class="raid-header">
+                    <div class="raid-icon">🐉</div>
+                    <div class="raid-info">
+                        <ul>
+                            <li>Lower Karazhan</li>
+                            <li>Onyxia</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timer">
+                    <div class="timer-label">Time until reset</div>
+                    <div class="countdown" id="raid5day-countdown">
+                        <div class="time-unit">
+                            <span class="time-value" id="raid5day-days">0</span>
+                            <div class="time-label">Days</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid5day-hours">0</span>
+                            <div class="time-label">Hours</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid5day-minutes">0</span>
+                            <div class="time-label">Minutes</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid5day-seconds">0</span>
+                            <div class="time-label">Seconds</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reset-info">
+                    <p>Resets every 5 days</p>
+                </div>
+            </div>
+
+            <div class="raid-card" data-raid="raid3day">
+                <div class="raid-header">
+                    <div class="raid-icon">🐯</div>
+                    <div class="raid-info">
+                        <ul>
+                            <li>Ruins of Ahn'Qiraj</li>
+                            <li>Zul'Gurub</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timer">
+                    <div class="timer-label">Time until reset</div>
+                    <div class="countdown" id="raid3day-countdown">
+                        <div class="time-unit">
+                            <span class="time-value" id="raid3day-days">0</span>
+                            <div class="time-label">Days</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid3day-hours">0</span>
+                            <div class="time-label">Hours</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid3day-minutes">0</span>
+                            <div class="time-label">Minutes</div>
+                        </div>
+                        <div class="time-unit">
+                            <span class="time-value" id="raid3day-seconds">0</span>
+                            <div class="time-label">Seconds</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reset-info">
+                    <p>Resets every 3 days</p>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="footer">
+            <p>WoW Raid Timer - Enhanced with modern design and configurable timers</p>
+        </div>
+    </div>
+
+    <script>
+        // Raid configuration
+        const raids = {
+            raid40: { name: 'Raid 40', interval: 7, resetTime: null },
+            raid5day: { name: '5-Day Raids', interval: 5, resetTime: null },
+            raid3day: { name: '3-Day Raids', interval: 3, resetTime: null }
+        };
+
+        // Initialize raid timers with Friday 12pm reset times
+        function initializeTimers() {
+            // Set default Friday 12pm reset times
+            Object.keys(raids).forEach(raid => {
+                // Calculate next Friday 12pm
+                const nextFriday = getNextFriday12PM();
+                raids[raid].resetTime = nextFriday.toISOString();
+            });
+        }
+
+        // Helper function to get next Friday 12pm
+        function getNextFriday12PM() {
+            const now = new Date();
+            const daysUntilFriday = (5 - now.getDay() + 7) % 7; // 5 = Friday
+            const nextFriday = new Date(now);
+            nextFriday.setDate(now.getDate() + daysUntilFriday);
+            nextFriday.setHours(12, 0, 0, 0); // 12pm
+            
+            // If today is Friday and it's past 12pm, get next Friday
+            if (now.getDay() === 5 && now.getHours() >= 12) {
+                nextFriday.setDate(nextFriday.getDate() + 7);
+            }
+            
+            return nextFriday;
+        }
+
+        // Calculate time remaining
+        function getTimeRemaining(resetTime, interval) {
+            const now = new Date();
+            let nextReset = new Date(resetTime);
+            
+            // If the reset time has passed, calculate the next reset
+            while (nextReset <= now) {
+                nextReset = new Date(nextReset.getTime() + interval * 24 * 60 * 60 * 1000);
+            }
+            
+            const diff = nextReset - now;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            return { days, hours, minutes, seconds, total: diff };
+        }
+
+        // Update countdown display
+        function updateCountdown() {
+            Object.keys(raids).forEach(raid => {
+                const timeRemaining = getTimeRemaining(raids[raid].resetTime, raids[raid].interval);
+                
+                document.getElementById(`${raid}-days`).textContent = timeRemaining.days;
+                document.getElementById(`${raid}-hours`).textContent = timeRemaining.hours.toString().padStart(2, '0');
+                document.getElementById(`${raid}-minutes`).textContent = timeRemaining.minutes.toString().padStart(2, '0');
+                document.getElementById(`${raid}-seconds`).textContent = timeRemaining.seconds.toString().padStart(2, '0');
+                
+                // Add urgent animation if less than 1 hour remaining
+                const timeUnits = document.querySelectorAll(`#${raid}-countdown .time-unit`);
+                timeUnits.forEach(unit => {
+                    if (timeRemaining.total < 60 * 60 * 1000) { // Less than 1 hour
+                        unit.classList.add('urgent');
+                    } else {
+                        unit.classList.remove('urgent');
+                    }
+                });
+            });
+        }
+
+        // Initialize the application
+        function init() {
+            initializeTimers();
+            updateCountdown();
+            
+            // Update countdown every second
+            setInterval(updateCountdown, 1000);
+        }
+
+        // Start the application when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
