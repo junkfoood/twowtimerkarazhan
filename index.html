@@ -88,18 +88,24 @@
             margin-bottom: 20px;
         }
 
-        .raid-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            margin-right: 20px;
-            background: var(--accent-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        /* Align header heights so timers line up across cards */
+        .raid-header { 
+            min-height: 160px; 
         }
+
+        /* Make raid names a 2-column grid */
+        .raid-info {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 20px;
+            row-gap: 6px;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        /* Force items to occupy rows top-to-bottom while keeping exactly 2 columns */
+        .raid-info p:nth-child(odd) { grid-column: 1; }
+        .raid-info p:nth-child(even) { grid-column: 2; }
 
         .raid-info h2 {
             font-size: 1.8rem;
@@ -109,8 +115,10 @@
         }
 
         .raid-info p {
+            text-align: center;
             color: #b8c5d6;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            margin: 0; /* rely on grid gaps */
         }
 
         .timer {
@@ -158,7 +166,7 @@
         }
 
         .reset-info {
-            text-align: center;
+            
             padding: 15px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -184,16 +192,25 @@
         .raid-card[data-raid="raid40"] {
             --accent-color: #ff6b6b;
             --accent-color-light: #ff8e8e;
+            background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('blackwinglair.png');
+            background-size: cover;
+            background-position: center;
         }
 
         .raid-card[data-raid="raid5day"] {
             --accent-color: #4ecdc4;
             --accent-color-light: #6ee7df;
+            background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('onyxia.png');
+            background-size: cover;
+            background-position: center;
         }
 
         .raid-card[data-raid="raid3day"] {
             --accent-color: #96ceb4;
             --accent-color-light: #b8e0c8;
+            background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('zulgurub.png');
+            background-size: cover;
+            background-position: center;
         }
 
         /* Responsive design */
@@ -219,6 +236,11 @@
             .time-value {
                 font-size: 1.5rem;
             }
+            /* Relax fixed heights and collapse to single column on small screens */
+            .raid-header { min-height: 0; }
+            .raid-info { grid-template-columns: 1fr; }
+            .raid-info p:nth-child(odd),
+            .raid-info p:nth-child(even) { grid-column: auto; }
         }
 
         /* Animation for countdown */
@@ -238,20 +260,18 @@
     <div class="container">
         <div class="header">
             <h1>Turtle WoW Karazhan Raid Timers</h1>
-            <p>Track your raid reset timers with precision</p>
+            <p><i>For Nene Company Inc</i></p>
         </div>
 
         <div class="raid-grid">
             <div class="raid-card" data-raid="raid40">
                 <div class="raid-header">
-                    <div class="raid-icon">🔥</div>
                     <div class="raid-info">
-                        <ul>
-                            <li>Blackwing Lair</li>
-                            <li>Emerald Sanctum</li>
-                            <li>Molten Core</li>
-                            <li>Temple of Ahn'Qiraj</li>
-                            <li>Naxxramas</li>
+                            <p>Blackwing Lair</p>
+                            <p>Emerald Sanctum</p>
+                            <p>Molten Core</p>
+                            <p>Temple of Ahn'Qiraj</p>
+                            <p>Naxxramas</p>
                     </div>
                 </div>
                 <div class="timer">
@@ -282,12 +302,9 @@
 
             <div class="raid-card" data-raid="raid5day">
                 <div class="raid-header">
-                    <div class="raid-icon">🐉</div>
                     <div class="raid-info">
-                        <ul>
-                            <li>Lower Karazhan</li>
-                            <li>Onyxia</li>
-                        </ul>
+                        <p>Lower Karazhan</p>
+                        <p>Onyxia</p>
                     </div>
                 </div>
                 <div class="timer">
@@ -318,12 +335,9 @@
 
             <div class="raid-card" data-raid="raid3day">
                 <div class="raid-header">
-                    <div class="raid-icon">🐯</div>
                     <div class="raid-info">
-                        <ul>
-                            <li>Ruins of Ahn'Qiraj</li>
-                            <li>Zul'Gurub</li>
-                        </ul>
+                        <p>Ruins of Ahn'Qiraj</p>
+                        <p>Zul'Gurub</p>
                     </div>
                 </div>
                 <div class="timer">
@@ -353,11 +367,6 @@
             </div>
         </div>
 
-
-
-        <div class="footer">
-            <p>WoW Raid Timer - Enhanced with modern design and configurable timers</p>
-        </div>
     </div>
 
     <script>
@@ -368,13 +377,13 @@
             raid3day: { name: '3-Day Raids', interval: 3, resetTime: null }
         };
 
-        // Initialize raid timers with Friday 12pm reset times
+        // Initialize raid timers: Friday 12pm by default, Saturday 12pm for 3-day raids (Ruins of Ahn'Qiraj & Zul'Gurub)
         function initializeTimers() {
-            // Set default Friday 12pm reset times
+            // Set default Friday 12pm reset times; override for specific raids as needed
             Object.keys(raids).forEach(raid => {
-                // Calculate next Friday 12pm
-                const nextFriday = getNextFriday12PM();
-                raids[raid].resetTime = nextFriday.toISOString();
+                // Calculate baseline reset time per raid
+                const baselineReset = raid === 'raid3day' ? getNextSaturday12PM() : getNextFriday12PM();
+                raids[raid].resetTime = baselineReset.toISOString();
             });
         }
 
@@ -392,6 +401,22 @@
             }
             
             return nextFriday;
+        }
+
+        // Helper function to get next Saturday 12pm
+        function getNextSaturday12PM() {
+            const now = new Date();
+            const daysUntilSaturday = (6 - now.getDay() + 7) % 7; // 6 = Saturday
+            const nextSaturday = new Date(now);
+            nextSaturday.setDate(now.getDate() + daysUntilSaturday);
+            nextSaturday.setHours(12, 0, 0, 0); // 12pm
+
+            // If today is Saturday and it's past 12pm, get next Saturday
+            if (now.getDay() === 6 && now.getHours() >= 12) {
+                nextSaturday.setDate(nextSaturday.getDate() + 7);
+            }
+
+            return nextSaturday;
         }
 
         // Calculate time remaining
