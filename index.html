@@ -379,12 +379,20 @@
         };
 
         // Initialize raid timers: Friday 12pm by default
-        // For 3-day raids (Ruins of Ahn'Qiraj & Zul'Gurub), anchor to yesterday 12pm and repeat every 3 days
+        // 3-day raids (Ruins of Ahn'Qiraj & Zul'Gurub): anchor to a fixed 3-day series base
+        // 5-day raids (Lower Karazhan & Onyxia): anchor to a fixed Wednesday 12pm series
         function initializeTimers() {
             // Set default Friday 12pm reset times; override for specific raids as needed
             Object.keys(raids).forEach(raid => {
                 // Calculate baseline reset time per raid
-                const baselineReset = raid === 'raid3day' ? getYesterday12PM() : getNextFriday12PM();
+                let baselineReset;
+                if (raid === 'raid3day') {
+                    baselineReset = getThreeDaySeriesAnchor();
+                } else if (raid === 'raid5day') {
+                    baselineReset = getFiveDaySeriesAnchor();
+                } else {
+                    baselineReset = getNextFriday12PM();
+                }
                 raids[raid].resetTime = baselineReset.toISOString();
             });
         }
@@ -405,13 +413,31 @@
             return nextFriday;
         }
 
-        // Helper function to get yesterday 12pm
-        function getYesterday12PM() {
+        // Helper: fixed 3-day series anchored to a known 12pm base
+        // Use 9 Aug 2025 12:00 local time (a Saturday) as the canonical base for 3-day raids
+        function getThreeDaySeriesAnchor() {
             const now = new Date();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            yesterday.setHours(12, 0, 0, 0); // 12pm
-            return yesterday;
+            const base = new Date(2025, 7, 9, 12, 0, 0, 0); // August 9, 2025 12:00
+            const anchor = new Date(base);
+            const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+            while (anchor > now) {
+                anchor.setTime(anchor.getTime() - threeDaysMs);
+            }
+            return anchor;
+        }
+
+        // Helper: fixed 5-day series anchored to a known Wednesday 12pm
+        // We use 6 Aug 2025 12:00 local time (which is a Wednesday) as the canonical base.
+        // Then step backwards in 5-day increments so the anchor is on or before 'now'.
+        function getFiveDaySeriesAnchor() {
+            const now = new Date();
+            const base = new Date(2025, 7, 8, 12, 0, 0, 0); // August 8, 2025 12:00
+            const anchor = new Date(base);
+            const fiveDaysMs = 5 * 24 * 60 * 60 * 1000;
+            while (anchor > now) {
+                anchor.setTime(anchor.getTime() - fiveDaysMs);
+            }
+            return anchor;
         }
 
         // Calculate time remaining
