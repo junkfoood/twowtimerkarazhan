@@ -179,6 +179,11 @@
             font-size: 0.9rem;
         }
 
+        .last-reset {
+            opacity: 0.8;
+            font-style: italic;
+        }
+
 
 
         .footer {
@@ -298,6 +303,7 @@
                 </div>
                 <div class="reset-info">
                     <p>Resets every 7 days</p>
+                    <p id="raid40-last-reset" class="last-reset">Last reset: Loading...</p>
                 </div>
             </div>
 
@@ -331,6 +337,7 @@
                 </div>
                 <div class="reset-info">
                     <p>Resets every 5 days</p>
+                    <p id="raid5day-last-reset" class="last-reset">Last reset: Loading...</p>
                 </div>
             </div>
 
@@ -364,6 +371,7 @@
                 </div>
                 <div class="reset-info">
                     <p>Resets every 3 days</p>
+                    <p id="raid3day-last-reset" class="last-reset">Last reset: Loading...</p>
                 </div>
             </div>
         </div>
@@ -378,39 +386,36 @@
             raid3day: { name: '3-Day Raids', interval: 3, resetTime: null }
         };
 
-        // Initialize raid timers: Friday 12pm by default
+        // Initialize raid timers: all use fixed anchor points and step backward to find most recent reset
+        // 7-day raids: anchor to a fixed Friday 12pm series
+        // 5-day raids (Lower Karazhan & Onyxia): anchor to a fixed Wednesday 12pm series  
         // 3-day raids (Ruins of Ahn'Qiraj & Zul'Gurub): anchor to a fixed 3-day series base
-        // 5-day raids (Lower Karazhan & Onyxia): anchor to a fixed Wednesday 12pm series
         function initializeTimers() {
-            // Set default Friday 12pm reset times; override for specific raids as needed
+            // Calculate baseline reset time per raid using fixed anchor points
             Object.keys(raids).forEach(raid => {
-                // Calculate baseline reset time per raid
                 let baselineReset;
                 if (raid === 'raid3day') {
                     baselineReset = getThreeDaySeriesAnchor();
                 } else if (raid === 'raid5day') {
                     baselineReset = getFiveDaySeriesAnchor();
                 } else {
-                    baselineReset = getNextFriday12PM();
+                    baselineReset = getSevenDaySeriesAnchor();
                 }
                 raids[raid].resetTime = baselineReset.toISOString();
             });
         }
 
-        // Helper function to get next Friday 12pm
-        function getNextFriday12PM() {
+        // Helper: fixed 7-day series anchored to a known Friday 12pm base
+        // Use Aug 8, 2025 12:00 local time (a Friday) as the canonical base for 7-day raids
+        function getSevenDaySeriesAnchor() {
             const now = new Date();
-            const daysUntilFriday = (5 - now.getDay() + 7) % 7; // 5 = Friday
-            const nextFriday = new Date(now);
-            nextFriday.setDate(now.getDate() + daysUntilFriday);
-            nextFriday.setHours(12, 0, 0, 0); // 12pm
-            
-            // If today is Friday and it's past 12pm, get next Friday
-            if (now.getDay() === 5 && now.getHours() >= 12) {
-                nextFriday.setDate(nextFriday.getDate() + 7);
+            const base = new Date(2025, 7, 8, 12, 0, 0, 0); // Aug 8, 2025 12:00 (Friday)
+            const anchor = new Date(base);
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            while (anchor > now) {
+                anchor.setTime(anchor.getTime() - sevenDaysMs);
             }
-            
-            return nextFriday;
+            return anchor;
         }
 
         // Helper: fixed 3-day series anchored to a known 12pm base
@@ -444,9 +449,11 @@
         function getTimeRemaining(resetTime, interval) {
             const now = new Date();
             let nextReset = new Date(resetTime);
+            let lastReset = new Date(resetTime);
             
             // If the reset time has passed, calculate the next reset
             while (nextReset <= now) {
+                lastReset = new Date(nextReset);
                 nextReset = new Date(nextReset.getTime() + interval * 24 * 60 * 60 * 1000);
             }
             
@@ -457,7 +464,7 @@
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
             
-            return { days, hours, minutes, seconds, total: diff };
+            return { days, hours, minutes, seconds, total: diff, lastReset };
         }
 
         // Update countdown display
@@ -469,6 +476,20 @@
                 document.getElementById(`${raid}-hours`).textContent = timeRemaining.hours.toString().padStart(2, '0');
                 document.getElementById(`${raid}-minutes`).textContent = timeRemaining.minutes.toString().padStart(2, '0');
                 document.getElementById(`${raid}-seconds`).textContent = timeRemaining.seconds.toString().padStart(2, '0');
+                
+                // Update last reset info
+                const lastResetElement = document.getElementById(`${raid}-last-reset`);
+                if (lastResetElement) {
+                    const lastResetFormatted = timeRemaining.lastReset.toLocaleString('en-SG', {
+                        month: 'short',
+                        day: 'numeric',
+                        weekday: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                    lastResetElement.textContent = `Last reset: ${lastResetFormatted}`;
+                }
                 
                 // Add urgent animation if less than 1 hour remaining
                 const timeUnits = document.querySelectorAll(`#${raid}-countdown .time-unit`);
